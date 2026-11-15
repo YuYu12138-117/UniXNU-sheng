@@ -1,0 +1,74 @@
+name: seed-only
+
+on:
+  workflow_dispatch:
+
+jobs:
+  seed:
+    runs-on: macos-26
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: UniXNU/UniXNU
+          ref: 82b847c4ac3f68a57024b3082ffa3a03442defd9
+          path: UniXNU
+          submodules: recursive
+      - uses: actions/checkout@v4
+        with:
+          repository: YuYu12138-117/UniXNU-sheng
+          path: device
+          submodules: recursive
+      - uses: actions/checkout@v4
+        with:
+          repository: UniXNU/uefi-sheng
+          path: uefi-sheng
+          submodules: recursive
+      - name: tools
+        run: |
+          brew install dtc llvm lld cmake mtools ninja glslang shaderc spirv-tools bison pkgconf rustup blacktop/tap/ipsw
+          {
+            echo "$HOME/.cargo/bin"
+            echo "/opt/homebrew/opt/llvm/bin"
+            echo "/opt/homebrew/opt/lld/bin"
+            echo "/opt/homebrew/opt/bison/bin"
+          } >> "$GITHUB_PATH"
+      - name: patch seed grow for root diskutil
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('UniXNU/scripts/seed-data-grow.py')
+          s = p.read_text()
+          old = "run('diskutil', 'apfs', 'resizeContainer'"
+          new = "run('sudo', 'diskutil', 'apfs', 'resizeContainer'"
+          if old not in s:
+              raise SystemExit('seed-data-grow.py pattern missing')
+          p.write_text(s.replace(old, new))
+          print('patched', p)
+          PY
+      - name: create seed
+        env:
+          UNIXNU_UNIQUE_CHIP_ID: e835c44a
+        run: |
+          cd device
+          nohup scripts/package.sh --os 27 --uefi ../uefi-sheng --init-data > /tmp/pkg.log 2>&1 &
+          for i in $(seq 1 300); do
+            f=../UniXNU/out/sheng/ipados-27.0.1-24A446/sheng_ipados27/runtime/data.dbr
+            if [ -f "$f" ]; then
+              sleep 8
+              break
+            fi
+            sleep 10
+          done
+          tail -60 /tmp/pkg.log
+          pkill -f "unixnu release" || true
+          pkill -f "package.sh --os 27" || true
+          test -f ../UniXNU/out/sheng/ipados-27.0.1-24A446/sheng_ipados27/runtime/data.dbr
+          ls -lh ../UniXNU/out/sheng/ipados-27.0.1-24A446/sheng_ipados27/runtime/data.dbr
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: data-seed
+          path: |
+            UniXNU/out/sheng/ipados-27.0.1-24A446/sheng_ipados27/runtime/data.dbr
+            UniXNU/out/sheng/ipados-27.0.1-24A446/sheng_ipados27/runtime/inputs.json
