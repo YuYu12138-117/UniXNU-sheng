@@ -38,6 +38,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          repository: CrossDarwin/UniXNU-sheng
+          ref: 9ae0df2cc6666b03b83a0ca6d5691606b9024c4f
           path: device
           submodules: recursive
       - uses: actions/checkout@v4
