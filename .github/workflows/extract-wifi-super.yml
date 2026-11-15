@@ -16,7 +16,7 @@ jobs:
           set -euxo pipefail
           mkdir -p /tmp/fw
           MEMBER="sheng_global_images_OS3.0.305.0.WNXMIXM_16.0/images/super.img"
-          curl -fL --retry 3 --retry-delay 5 "https://bn.d.miui.com/OS3.0.305.0.WNXMIXM/sheng_global_images_OS3.0.305.0.WNXMIXM_20260914.0000.00_16.0_global_31450b6677.tgz" | tar -xzv "$MEMBER" -C /tmp/fw
+          curl -fL --retry 3 --retry-delay 5 "https://bn.d.miui.com/OS3.0.305.0.WNXMIXM/sheng_global_images_OS3.0.305.0.WNXMIXM_20260914.0000.00_16.0_global_31450b6677.tgz" | tar -xzv -C /tmp/fw "$MEMBER"
       - name: unpack super
         run: |
           set -euxo pipefail
