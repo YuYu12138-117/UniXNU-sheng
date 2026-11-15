@@ -138,9 +138,14 @@ jobs:
       - name: trim firmware components
         working-directory: device
         run: |
-          sed -i '/wifi_tool =/d' board.toml
-          sed -i '/firmware_tools =/d' board.toml
-          grep -n 'wifi_tool\|firmware_tools' board.toml || true
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('board.toml')
+          lines = p.read_text().splitlines()
+          kept = [line for line in lines if 'wifi_tool =' not in line and 'firmware_tools =' not in line]
+          p.write_text('\n'.join(kept) + '\n')
+          print('trimmed', len(lines) - len(kept), 'lines')
+          PY
       - name: package
         working-directory: device
         env:
