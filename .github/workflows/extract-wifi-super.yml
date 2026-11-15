@@ -33,7 +33,7 @@ jobs:
           for IMG in $(find /tmp/parts -maxdepth 1 -name '*.img'); do
             echo "=== $IMG ==="
             D=$(basename "$IMG" .img)
-            mkdir -p "/mnt/$D"
+            sudo mkdir -p "/mnt/$D"
             if sudo mount -t erofs -o loop,ro "$IMG" "/mnt/$D" 2>/dev/null || sudo mount -o loop,ro "$IMG" "/mnt/$D" 2>/dev/null; then
               sudo find "/mnt/$D" -maxdepth 4 -iname '*wcn7850*' -ls 2>/dev/null | head -20 || true
               sudo find "/mnt/$D" -maxdepth 5 \( -name amss.bin -o -name m3.bin -o -name board-2.bin -o -name 'board-2*' \) -ls 2>/dev/null | head -20 || true
