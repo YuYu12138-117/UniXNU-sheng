@@ -29,26 +29,29 @@ jobs:
       - name: dump wcn7850 firmware
         run: |
           set -euxo pipefail
-          VENDOR=$(find /tmp/parts -name 'vendor*.img' | head -1)
+          VENDOR=$(find /tmp/parts -name 'vendor_a.img' | head -1)
           echo "vendor=$VENDOR"
           mkdir -p /tmp/vendor_extract /tmp/fwout/wcn7850
-          if fsck.erofs --extract=/tmp/vendor_extract "$VENDOR"; then
-            echo erofs
+          fsck.erofs --extract /tmp/vendor_extract "$VENDOR" || true
+          echo fsck_rc=$?
+          find /tmp/vendor_extract -maxdepth 6 -ls | head -30 || true
+          find /tmp/vendor_extract -name 'amss.bin' -o -name 'm3.bin' -o -name 'board-2.bin' | head -20 || true
+          sudo mkdir -p /mnt/vendor
+          if sudo mount -t erofs -o loop,ro "$VENDOR" /mnt/vendor; then
+            echo mounted-erofs
+          elif sudo mount -o loop,ro "$VENDOR" /mnt/vendor; then
+            echo mounted-auto
           else
-            echo ext4
-            sudo mkdir -p /mnt/vendor
-            sudo mount -o loop,ro "$VENDOR" /mnt/vendor
-            sudo find /mnt/vendor -path '*wcn7850*' -maxdepth 8 -ls | head -40
-            sudo cp /mnt/vendor/firmware/wcn7850/amss.bin /tmp/fwout/wcn7850/amss.bin
-            sudo cp /mnt/vendor/firmware/wcn7850/m3.bin /tmp/fwout/wcn7850/m3.bin
-            sudo cp /mnt/vendor/firmware/wcn7850/board-2.bin /tmp/fwout/wcn7850/board-2.bin
+            echo mount-failed
           fi
-          find /tmp/vendor_extract -path '*wcn7850*' -ls | head -40
+          sudo find /mnt/vendor -type f \( -name amss.bin -o -name m3.bin -o -name board-2.bin \) -ls 2>/dev/null | head -30 || true
           for f in amss.bin m3.bin board-2.bin; do
-            if [ ! -f /tmp/fwout/wcn7850/$f ]; then cp /tmp/vendor_extract/firmware/wcn7850/$f /tmp/fwout/wcn7850/$f; fi
+            SRC=$(sudo find /mnt/vendor /tmp/vendor_extract -type f -name "$f" 2>/dev/null | head -1)
+            echo "src-$f=$SRC"
+            if [ -n "$SRC" ]; then sudo cp "$SRC" "/tmp/fwout/wcn7850/$f"; fi
           done
           ls -l /tmp/fwout/wcn7850
-          sha256sum /tmp/fwout/wcn7850/*
+          sha256sum /tmp/fwout/wcn7850/* || true
       - name: verify and upload
         run: |
           set -euxo pipefail
