@@ -515,6 +515,11 @@ print(f'HID: {len(hid_bindings)} original IOHIDDevice bindings, vtables {hid_vta
 # kernel flags give them the kernel's ABI. Classes registered late leave __mod_init_func; their probes run the initializers.
 board_dir = OUT / 'board'
 board_dir.mkdir(exist_ok=True)
+# The feed checkout can omit the UART header; use the pinned source's copy.
+import urllib.request
+uart_header = OUT / 'board/Sm8550GeniUart.h'
+if not uart_header.exists():
+    uart_header.write_bytes(urllib.request.urlopen('https://raw.githubusercontent.com/UniXNU/UniXNU-sm8550-common/2dc650ca76ae38715cd0712e60a44b14fe251745/kits/Sm8550Platform/Sm8550GeniUart.h').read())
 KITS = ROOT / 'kits/sheng'
 # As on iPadOS 17, ATH12K_WIFI_DIR names a checkout whose deps/linux holds the driver sources.
 WIFI = Path(os.environ.get('ATH12K_WIFI_DIR') or DEVICE / 'drivers/Ath12kWifi')
@@ -524,7 +529,7 @@ BLUETOOTH = Path(os.environ.get('QCA_BLUETOOTH_DIR') or
 require((BLUETOOTH / 'include/qbt.h').exists(), 'QcaBluetooth module directory')
 board_objects = []
 for stem, extra in [('CpuFreqProbe', ()), ('ThermalProbe', ()), ('BoardClock', ()), ('GpuMemoryPool', ()), ('WifiProbe', ('-I', str(WIFI / 'include'))),
-                    ('BluetoothProbe', ('-I', str(BLUETOOTH / 'include'), '-I', str(ROOT / 'kits/Sm8550Platform'))),
+                    ('BluetoothProbe', ('-I', str(BLUETOOTH / 'include'), '-I', str(ROOT / 'kits/Sm8550Platform'), '-I', str(OUT / 'board'))),
                     ('AdspProbe', ()), ('AudioProbe', ()),
                     ('BacklightProbe', ()), ('DisplayTimingProbe', ()), ('BatteryProbe', ()), ('KeyboardProbe', ()),
                     # GPU power, GMU and the Metal accelerator publication (gpu-power, gpu-metal), as on iPadOS 17.
