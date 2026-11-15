@@ -137,18 +137,14 @@ jobs:
           q.write_text(b.replace(old, new))
           print('patched')
           PY2
-      - name: trim firmware components
+      - name: update feeds
         working-directory: device
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          p = Path('board.toml')
-          lines = p.read_text().splitlines()
-          kept = [line for line in lines if 'wifi_tool =' not in line and 'firmware_tools =' not in line]
-          p.write_text('\n'.join(kept) + '\n')
           f = Path('feeds.toml')
           f.write_text(f.read_text().replace('a9f45dc60c035084b95463781538380f4c3606c9', '2dc650ca76ae38715cd0712e60a44b14fe251745'))
-          print('trimmed', len(lines) - len(kept), 'lines; feed updated')
+          print('feed updated')
           PY
       - name: add bootstrap link stubs
         working-directory: device
@@ -173,6 +169,10 @@ jobs:
           mkdir -p UniXNU/.cache/firmware/nanosic
           curl -fsSL https://raw.githubusercontent.com/ianchb/sheng-firmware/HEAD/nanosic/MCU_Upgrade.bin -o UniXNU/.cache/firmware/nanosic/MCU_Upgrade.bin
           echo "9eb7213603474d926d3af1124d3c14d63cbfc58ea2f7f7d9fedc088093fd63c5  UniXNU/.cache/firmware/nanosic/MCU_Upgrade.bin" | sha256sum -c -
+      - name: stage proprietary firmware
+        working-directory: device
+        run: |
+          python3 scripts/extract-files.py
       - name: package
         working-directory: device
         env:
