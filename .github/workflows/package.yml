@@ -126,17 +126,12 @@ jobs:
         run: |
           python3 - <<'PY2'
           from pathlib import Path
-          p = Path('UniXNU/patches/mesa/turnip-frame-diagnostics.patch')
-          s = p.read_text()
-          s = s.replace("new file mode 100644\n", "")
-          s = s.replace("--- /dev/null", "--- a/src/freedreno/vulkan/tu_frame_diagnostic.h")
-          p.write_text(s)
           q = Path('UniXNU/scripts/build-boot-runtime.py')
           b = q.read_text()
           old = "    if fresh:\n        for patch in pins['patches']:\n            run('git', '-C', mesa, 'apply', ROOT / patch)"
-          new = "    if fresh:\n        header = mesa / 'src/freedreno/vulkan/tu_frame_diagnostic.h'\n        header.parent.mkdir(parents=True, exist_ok=True)\n        header.write_text('')\n        for patch in pins['patches']:\n            run('/usr/bin/git', '-C', mesa, 'apply', ROOT / patch)"
+          new = "    if fresh:\n        for patch in pins['patches']:\n            try:\n                run('/usr/bin/git', '-C', mesa, 'apply', ROOT / patch)\n            except subprocess.CalledProcessError:\n                run('patch', '-d', str(mesa), '-p1', '-N', '-i', str(ROOT / patch))"
           if old not in b:
-              raise SystemExit('build-boot-runtime.py pattern missing')
+              raise SystemExit('pattern missing')
           q.write_text(b.replace(old, new))
           print('patched')
           PY2
