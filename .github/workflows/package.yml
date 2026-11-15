@@ -181,6 +181,13 @@ jobs:
             '6a98237c743d864773a547e81e23f0c6dc721dcd7331926bee7381e2152e00fd  device/firmware/wcn7850/board-2.bin' \
             | sha256sum -c -
 
+      - name: prepare WiFi sources
+        working-directory: device/drivers/Ath12kWifi
+        run: |
+          set -euxo pipefail
+          bash tools/fetch-sources.sh
+          python3 tools/fetch-sources.py --check
+          ls -lh deps/wpa_supplicant-2.12.tar.gz
       - name: stage proprietary firmware
         working-directory: device
         run: |
