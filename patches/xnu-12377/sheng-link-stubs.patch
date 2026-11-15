@@ -1,6 +1,6 @@
 --- a/bsd/kern/bsd_init.c
 +++ b/bsd/kern/bsd_init.c
-@@ -1599,8 +1599,94 @@
+@@ -1599,8 +1599,121 @@
  netboot_root(void);
  
  int
@@ -94,4 +94,31 @@
 +	(void)policy;
 +	(void)scratch_addr;
 +	return 0;
++}
++
++__attribute__((weak)) void
++boot_cache_input_capture(user_addr_t addr, uint64_t value)
++{
++	(void)addr;
++	(void)value;
++}
++
++__attribute__((weak)) volatile uint32_t boot_log_rounds = 0;
++
++__attribute__((weak)) int
++corecrypto_kext_start(void *info, void *data)
++{
++	(void)info;
++	(void)data;
++	return 0;
++}
++
++__attribute__((weak)) void
++native_legacy_display_probe(void)
++{
++}
++
++__attribute__((weak)) void
++native_legacy_display_late_probe(void)
++{
 +}
