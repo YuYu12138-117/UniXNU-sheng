@@ -29,23 +29,25 @@ jobs:
       - name: dump wcn7850 firmware
         run: |
           set -euxo pipefail
-          VENDOR=$(find /tmp/parts -name 'vendor_a.img' | head -1)
-          echo "vendor=$VENDOR"
-          mkdir -p /tmp/vendor_extract /tmp/fwout/wcn7850
-          sudo mkdir -p /mnt/vendor
-          sudo mount -t erofs -o loop,ro "$VENDOR" /mnt/vendor
-          echo '--- vendor root ---'
-          sudo ls -la /mnt/vendor | head -40 || true
-          echo '--- vendor dirs ---'
-          sudo find /mnt/vendor -maxdepth 3 -type d 2>/dev/null | head -40 || true
-          echo '--- vendor files ---'
-          sudo find /mnt/vendor -maxdepth 4 -type f 2>/dev/null | head -40 || true
-          echo '--- wcn candidates ---'
-          sudo find /mnt/vendor -type f \( -iname '*wcn7850*' -o -name amss.bin -o -name m3.bin -o -name board-2.bin \) -ls 2>/dev/null | head -40 || true
-          echo '--- erofs metadata ---'
-          dump.erofs --path=/ /tmp/parts/vendor_a.img 2>&1 | head -40 || true
+          mkdir -p /tmp/fwout/wcn7850
+          for IMG in $(find /tmp/parts -maxdepth 1 -name '*.img'); do
+            echo "=== $IMG ==="
+            D=$(basename "$IMG" .img)
+            mkdir -p "/mnt/$D"
+            if sudo mount -t erofs -o loop,ro "$IMG" "/mnt/$D" 2>/dev/null || sudo mount -o loop,ro "$IMG" "/mnt/$D" 2>/dev/null; then
+              sudo find "/mnt/$D" -maxdepth 4 -iname '*wcn7850*' -ls 2>/dev/null | head -20 || true
+              sudo find "/mnt/$D" -maxdepth 5 \( -name amss.bin -o -name m3.bin -o -name board-2.bin -o -name 'board-2*' \) -ls 2>/dev/null | head -20 || true
+              sudo ls -la "/mnt/$D/firmware" 2>/dev/null | head -40 || true
+            else
+              echo "mount failed $IMG"
+            fi
+          done
+          echo '=== dump vendor firmware dir ==='
+          dump.erofs --path=/firmware --ls /tmp/parts/vendor_a.img 2>&1 | head -60 || true
+          echo '=== dump vendor wcn path ==='
+          dump.erofs --path=/firmware/wcn7850 --ls /tmp/parts/vendor_a.img 2>&1 | head -40 || true
           for f in amss.bin m3.bin board-2.bin; do
-            SRC=$(sudo find /mnt/vendor -type f -name "$f" 2>/dev/null | head -1)
+            SRC=$(sudo find /mnt -type f -name "$f" 2>/dev/null | head -1)
             echo "src-$f=$SRC"
             if [ -n "$SRC" ]; then sudo cp "$SRC" "/tmp/fwout/wcn7850/$f"; fi
           done
