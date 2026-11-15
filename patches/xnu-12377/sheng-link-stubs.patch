@@ -1,0 +1,97 @@
+--- a/bsd/kern/bsd_init.c
++++ b/bsd/kern/bsd_init.c
+@@ -1599,8 +1599,94 @@
+ netboot_root(void);
+ 
+ int
+ netboot_root(void)
+ {
+ 	return 0;
+ }
+ #endif
++
++/*
++ * Bootstrap link stubs.  The first XNU link runs before the storage,
++ * RamBlock and VerifiedRoot archives exist; these weak definitions let the
++ * compile-record pass finish.  A later link force-loads those archives and
++ * their strong definitions replace these stubs.
++ */
++__attribute__((weak)) void
++native_source_storage_start(void)
++{
++}
++
++__attribute__((weak)) int
++native_ram_block_gpu_addon(const uint8_t **addon, uint64_t *bytes)
++{
++	if (addon != 0) {
++		*addon = 0;
++	}
++	if (bytes != 0) {
++		*bytes = 0;
++	}
++	return 0;
++}
++
++__attribute__((weak)) int
++native_ram_block_volume_seed(const char *uuid, dev_t *device, char *device_path,
++    size_t device_path_size, uint64_t *offset, uint64_t *length, uint8_t *seed)
++{
++	(void)uuid;
++	(void)seed;
++	if (device != 0) {
++		*device = 0;
++	}
++	if (device_path != 0 && device_path_size > 0) {
++		device_path[0] = '\0';
++	}
++	if (offset != 0) {
++		*offset = 0;
++	}
++	if (length != 0) {
++		*length = 0;
++	}
++	return 0;
++}
++
++__attribute__((weak)) int
++native_verified_block_root_authorized(dev_t device)
++{
++	(void)device;
++	return 1;
++}
++
++__attribute__((weak)) int
++native_verified_block_volume_device(const char *uuid, dev_t *device,
++    char *device_path, size_t device_path_size)
++{
++	(void)uuid;
++	if (device != 0) {
++		*device = 0;
++	}
++	if (device_path != 0 && device_path_size > 0) {
++		device_path[0] = '\0';
++	}
++	return 0;
++}
++
++__attribute__((weak)) int
++native_verified_block_manifest_sha384(dev_t device, const char *uuid,
++    uint8_t digest[48])
++{
++	int i;
++	(void)device;
++	(void)uuid;
++	for (i = 0; i < 48; i++) {
++		digest[i] = 0;
++	}
++	return 1;
++}
++
++__attribute__((weak)) int
++sheng_boot_watchdog_policy(void *policy, uint64_t scratch_addr)
++{
++	(void)policy;
++	(void)scratch_addr;
++	return 0;
++}
