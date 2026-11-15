@@ -122,6 +122,18 @@ jobs:
           if not path.is_file() and os.environ['INIT_DATA'] != 'true':
               raise SystemExit('No saved seed. Supply the ORIGINAL seed for an existing installation, or select init_data for a FIRST installation')
           PY
+      - name: use system git for mesa patch
+        run: |
+          python3 - <<'PY2'
+          from pathlib import Path
+          p = Path('UniXNU/scripts/build-boot-runtime.py')
+          s = p.read_text()
+          old = "run('git', '-C', mesa, 'apply', ROOT / patch)"
+          new = "run('/usr/bin/git', '-C', mesa, 'apply', ROOT / patch)"
+          if old not in s:
+              raise SystemExit('pattern missing')
+          p.write_text(s.replace(old, new))
+          PY2
       - name: package
         working-directory: device
         env:
