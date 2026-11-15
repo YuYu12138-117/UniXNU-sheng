@@ -153,7 +153,7 @@ jobs:
       - name: add bootstrap link stubs
         working-directory: device
         run: |
-          curl -fsSL --retry 3 https://raw.githubusercontent.com/YuYu12138-117/UniXNU-sheng/main/patches/xnu-12377/sheng-link-stubs.patch -o patches/xnu-12377/sheng-link-stubs.patch
+          curl -fsSL --retry 3 -H 'Accept: application/vnd.github.raw' https://api.github.com/repos/YuYu12138-117/UniXNU-sheng/contents/patches/xnu-12377/sheng-link-stubs.patch -o patches/xnu-12377/sheng-link-stubs.patch
           grep -qxF sheng-link-stubs.patch patches/xnu-12377/series || echo sheng-link-stubs.patch >> patches/xnu-12377/series
           tail -3 patches/xnu-12377/series
       - name: package
