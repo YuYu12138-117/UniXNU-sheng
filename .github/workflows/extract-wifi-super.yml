@@ -1,0 +1,63 @@
+name: extract wifi from super
+on:
+  workflow_dispatch:
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: install tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq e2fsprogs erofs-utils
+          curl -fsSL https://raw.githubusercontent.com/unix3dgforce/lpunpack/master/lpunpack.py -o /tmp/lpunpack.py
+      - name: get super image
+        run: |
+          set -euxo pipefail
+          mkdir -p /tmp/fw
+          curl -fL --retry 3 --retry-delay 5 "https://bn.d.miui.com/OS3.0.305.0.WNXMIXM/sheng_global_images_OS3.0.305.0.WNXMIXM_20260914.0000.00_16.0_global_31450b6677.tgz" | tar -xz --wildcards --no-anchored 'super.img' -C /tmp/fw
+          find /tmp/fw -name super.img -ls
+      - name: unpack super
+        run: |
+          set -euxo pipefail
+          SUPER=$(find /tmp/fw -name super.img | head -1)
+          mkdir -p /tmp/parts
+          python3 /tmp/lpunpack.py --info --format json "$SUPER" > /tmp/parts/info.json || true
+          cat /tmp/parts/info.json | head -80 || true
+          python3 /tmp/lpunpack.py --partition vendor "$SUPER" /tmp/parts ||           python3 /tmp/lpunpack.py --partition vendor_a "$SUPER" /tmp/parts
+          find /tmp/parts -name '*.img' -ls
+      - name: dump wcn7850 firmware
+        run: |
+          set -euxo pipefail
+          VENDOR=$(find /tmp/parts -name 'vendor*.img' | head -1)
+          echo "vendor=$VENDOR"
+          mkdir -p /tmp/vendor_extract /tmp/fwout/wcn7850
+          if fsck.erofs --extract=/tmp/vendor_extract "$VENDOR"; then
+            echo erofs
+          else
+            echo ext4
+            sudo mkdir -p /mnt/vendor
+            sudo mount -o loop,ro "$VENDOR" /mnt/vendor
+            sudo find /mnt/vendor -path '*wcn7850*' -maxdepth 8 -ls | head -40
+            sudo cp /mnt/vendor/firmware/wcn7850/amss.bin /tmp/fwout/wcn7850/amss.bin
+            sudo cp /mnt/vendor/firmware/wcn7850/m3.bin /tmp/fwout/wcn7850/m3.bin
+            sudo cp /mnt/vendor/firmware/wcn7850/board-2.bin /tmp/fwout/wcn7850/board-2.bin
+          fi
+          find /tmp/vendor_extract -path '*wcn7850*' -ls | head -40
+          for f in amss.bin m3.bin board-2.bin; do
+            if [ ! -f /tmp/fwout/wcn7850/$f ]; then cp /tmp/vendor_extract/firmware/wcn7850/$f /tmp/fwout/wcn7850/$f; fi
+          done
+          ls -l /tmp/fwout/wcn7850
+          sha256sum /tmp/fwout/wcn7850/*
+      - name: verify and upload
+        run: |
+          set -euxo pipefail
+          echo "43aadfd3df887f27de74020273aee484bac6a31dd53068f91baf2a9b094d6a68  /tmp/fwout/wcn7850/amss.bin" > /tmp/check
+          echo "0e72f44df7defc269fe92dcea25d4d409046c04b77d41c510c52879b3dfc1055  /tmp/fwout/wcn7850/m3.bin" >> /tmp/check
+          echo "6a98237c743d864773a547e81e23f0c6dc721dcd7331926bee7381e2152e00fd  /tmp/fwout/wcn7850/board-2.bin" >> /tmp/check
+          sha256sum -c /tmp/check
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wcn7850-firmware
+          path: /tmp/fwout/wcn7850
+          if-no-files-found: error
