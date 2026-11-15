@@ -135,18 +135,12 @@ jobs:
           q.write_text(b.replace(old, new))
           print('patched')
           PY2
-      - name: sheng wifi firmware
+      - name: trim firmware components
         working-directory: device
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
-          mkdir -p firmware/wcn7850
-          for name in amss.bin m3.bin board-2.bin; do
-            gh api -H "Accept: application/vnd.github.raw" \
-              "repos/ianchb/sheng-firmware/contents/ath12k/WCN7850/hw2.0/$name?ref=2c1e2729a085c7f0470c855d236e49455c4601f0" \
-              > "firmware/wcn7850/$name"
-          done
-          sha256sum firmware/wcn7850/*.bin
+          sed -i '/wifi_tool =/d' board.toml
+          sed -i '/firmware_tools =/d' board.toml
+          grep -n 'wifi_tool\|firmware_tools' board.toml || true
       - name: package
         working-directory: device
         env:
