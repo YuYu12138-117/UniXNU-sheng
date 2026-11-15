@@ -15,14 +15,14 @@ jobs:
         run: |
           set -euxo pipefail
           mkdir -p /tmp/fw
-          curl -fL --retry 3 --retry-delay 5 "https://bn.d.miui.com/OS3.0.305.0.WNXMIXM/sheng_global_images_OS3.0.305.0.WNXMIXM_20260914.0000.00_16.0_global_31450b6677.tgz" | tar -xz --wildcards --no-anchored 'super.img' -C /tmp/fw
-          find /tmp/fw -name super.img -ls
+          MEMBER="sheng_global_images_OS3.0.305.0.WNXMIXM_16.0/images/super.img"
+          curl -fL --retry 3 --retry-delay 5 "https://bn.d.miui.com/OS3.0.305.0.WNXMIXM/sheng_global_images_OS3.0.305.0.WNXMIXM_20260914.0000.00_16.0_global_31450b6677.tgz" | tar -xzv "$MEMBER" -C /tmp/fw
       - name: unpack super
         run: |
           set -euxo pipefail
           SUPER=$(find /tmp/fw -name super.img | head -1)
           mkdir -p /tmp/parts
-          python3 /tmp/lpunpack.py --info --format json "$SUPER" > /tmp/parts/info.json || true
+          python3 /tmp/lpunpack.py --info --format json "$SUPER" /tmp/parts > /tmp/parts/info.json || true
           cat /tmp/parts/info.json | head -80 || true
           python3 /tmp/lpunpack.py --partition vendor "$SUPER" /tmp/parts ||           python3 /tmp/lpunpack.py --partition vendor_a "$SUPER" /tmp/parts
           find /tmp/parts -name '*.img' -ls
