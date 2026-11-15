@@ -150,6 +150,12 @@ jobs:
           f.write_text(f.read_text().replace('a9f45dc60c035084b95463781538380f4c3606c9', '2dc650ca76ae38715cd0712e60a44b14fe251745'))
           print('trimmed', len(lines) - len(kept), 'lines; feed updated')
           PY
+      - name: add bootstrap link stubs
+        working-directory: device
+        run: |
+          curl -fsSL --retry 3 https://raw.githubusercontent.com/YuYu12138-117/UniXNU-sheng/main/patches/xnu-12377/sheng-link-stubs.patch -o patches/xnu-12377/sheng-link-stubs.patch
+          grep -qxF sheng-link-stubs.patch patches/xnu-12377/series || printf '\\nsheng-link-stubs.patch\\n' >> patches/xnu-12377/series
+          tail -3 patches/xnu-12377/series
       - name: package
         working-directory: device
         env:
