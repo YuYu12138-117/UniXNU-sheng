@@ -1,0 +1,31 @@
+name: extract wifi firmware
+on:
+  workflow_dispatch:
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: download and extract vendor image
+        run: |
+          set -euxo pipefail
+          mkdir -p out
+          curl -fL --retry 3 --retry-delay 5 "https://bn.d.miui.com/OS3.0.305.0.WNXMIXM/sheng_global_images_OS3.0.305.0.WNXMIXM_20260914.0000.00_16.0_global_31450b6677.tgz" | tar -xz --wildcards --no-anchored 'vendor.img' -C out
+          find out -name 'vendor.img' -ls
+      - name: dump wcn7850 firmware
+        run: |
+          set -euxo pipefail
+          VENDOR=$(find out -name 'vendor.img' | head -1)
+          mkdir -p wifi
+          for f in amss.bin m3.bin board-2.bin; do
+            debugfs -R "dump /firmware/wcn7850/$f wifi/$f" "$VENDOR" 2>/dev/null || true
+            debugfs -R "dump /vendor/firmware/wcn7850/$f wifi/$f" "$VENDOR" 2>/dev/null || true
+            debugfs -R "dump /firmware/$f wifi/$f" "$VENDOR" 2>/dev/null || true
+          done
+          ls -l wifi
+          sha256sum wifi/* || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wcn7850
+          path: wifi
+          if-no-files-found: error
